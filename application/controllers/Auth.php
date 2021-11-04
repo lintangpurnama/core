@@ -122,4 +122,12 @@ class Auth extends CI_Controller
           </div>');
         redirect('auth');
     }
+
+    public function blocked()
+    {
+        $data['title'] = 'ERROR 404';
+        $this->load->view('templates/header', $data);
+        $this->load->view('auth/blocked');
+        $this->load->view('templates/footer');
+    }
 }
