@@ -35,7 +35,7 @@ class User extends CI_Controller
             $this->load->view('templates/sidebar', $data);
             $this->load->view('templates/topbar', $data);
             $this->load->view('user/edit', $data);
-            $this->load->view('templates/footer');
+            $this->load->view('user/footer_user');
         } else {
             $name = $this->input->post('name');
             $email = $this->input->post('email');
@@ -79,6 +79,85 @@ class User extends CI_Controller
                Your profile has been updated!
               </div>');
             redirect('user');
+        }
+    }
+
+    public function logout()
+    {
+        $this->session->unset_userdata('email');
+        $this->session->unset_userdata('role_id');
+
+        $this->session->set_flashdata('message', '<div class="alert alert-primary" role="alert">
+           You have been logged out!
+          </div>');
+        redirect('auth');
+    }
+    public function changepassword()
+    {
+        $data['title'] = 'Change Password';
+        $data['user'] = $this->db->get_where('user', ['email' =>
+        $this->session->userdata('email')])->row_array();
+
+        //rules pw
+        $this->form_validation->set_rules('current_password', 'Current Password', 'required|trim');
+
+        $this->form_validation->set_rules('new_password1', 'New Password', 'required|trim|min_length[3]|matches[new_password2]');
+
+        $this->form_validation->set_rules('new_password2', 'Repeat Password', 'required|trim|min_length[3]|matches[new_password1]');
+
+        if ($this->form_validation->run() == false) {
+
+            $this->load->view('templates/header', $data);
+            $this->load->view('templates/sidebar', $data);
+            $this->load->view('templates/topbar', $data);
+            $this->load->view('user/change_pw', $data);
+            $this->load->view('user/footer_user');
+        } else {
+            //mengambil input user
+            $current_pw = $this->input->post('current_password');
+            $new_pw = $this->input->post('new_password1');
+
+            //cek password kalo salah
+            if (!password_verify($current_pw, $data['user']['password'])) {
+                // $this->session->form_error('current_password');
+                $this->session->set_flashdata('message', '<div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <strong>Wrong Password!</strong> The password that is entered is wrong! please enter the correct password.
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>');
+
+                redirect('user/changepassword');
+            } else {
+
+                // New password cannot be the same as current password
+                //pw baru tidak boleh sama dengan passwrd lama
+                if ($current_pw == $new_pw) {
+                    $this->session->set_flashdata('message', '<div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <strong>Password can not be changed! </strong> New password cannot be the same as current password.
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>');
+                    redirect('user/changepassword');
+                } else {
+
+
+                    //password ok
+                    $password_hash = password_hash($new_pw, PASSWORD_DEFAULT);
+                    $this->db->set('password', $password_hash);
+                    $this->db->where('email', $this->session->userdata('email'));
+                    $this->db->update('user');
+
+                    $this->session->set_flashdata('message', '<div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <strong>Password changed! </strong> Please <a class="font-weight-bold" href="logout">login</a> to make sure the password has been changed .
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>');
+                    redirect('user/changepassword');
+                }
+            }
         }
     }
 }
